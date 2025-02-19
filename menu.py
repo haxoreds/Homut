@@ -44,9 +44,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Пуансоны {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalancepunches{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitempunches{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbpunches{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeletepunches{inv_id}',
             'Назад': 'back',
         },
     }
@@ -55,9 +54,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Вставки {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalanceinserts{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewiteminserts{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbinserts{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeleteinserts{inv_id}',
             'Назад': 'back',
         },
     }
@@ -66,9 +64,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Запчасти для штампа {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalancestampparts{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitemstampparts{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbstampparts{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeletestampparts{inv_id}',
             'Назад': 'back',
         },
     }
@@ -77,9 +74,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Ножи {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalanceknives{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitemknives{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbknives{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeleteknives{inv_id}',
             'Назад': 'back',
         },
     }
@@ -97,9 +93,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Запчасти для диска {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalancediscparts{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitemdiscparts{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbdiscparts{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeletediscparts{inv_id}',
             'Назад': 'back',
         },
     }
@@ -108,9 +103,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Толкатели {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalancepushers{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitempushers{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbpushers{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeletepushers{inv_id}',
             'Назад': 'back',
         },
     }
@@ -119,9 +113,8 @@ def create_inventory_submenus(inv_id, inv_name):
         'text': f'Кулачки {inv_name}',
         'buttons': {
             'Показать остаток': f'showbalancecams{inv_id}',
-            # Удаляем кнопку "Изменить количество" из меню
             'Добавить новую позицию': f'addnewitemcams{inv_id}',
-            'Изменить или удалить данные в базе': f'updatedbcams{inv_id}',
+            'Изменить или удалить данные в базе': f'editdeletecams{inv_id}',
             'Назад': 'back',
         },
     }
@@ -178,4 +171,3 @@ def back_to_menu_keyboard(menu_name):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Назад", callback_data='back')]
     ])
-  

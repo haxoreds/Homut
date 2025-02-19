@@ -18,14 +18,14 @@ def get_async_connection():
 # Функция для получения stamp_id по действию
 async def get_stamp_id_by_action(action):
     # Извлекаем категорию и inv_id из action
-    category_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity)([a-z]+)', action)
+    category_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete)([a-z]+)', action)
     if category_match:
         category = category_match.group(1)
     else:
         logger.warning(f"Не удалось извлечь категорию из action: {action}")
         return None
 
-    inv_id_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity)[a-z]+(.+)', action)
+    inv_id_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete)[a-z]+(.+)', action)
     if inv_id_match:
         inv_id_full = inv_id_match.group(1)
         logger.info(f"Извлечённый inv_id: {inv_id_full} из action: {action}")

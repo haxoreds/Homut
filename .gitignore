@@ -26,10 +26,12 @@ var/
 # Database
 *.db
 *.sqlite3
+inventory.db
 
 # Logs
 *.log
 logs/
+*.log.*
 
 # IDE
 .idea/
@@ -42,3 +44,8 @@ logs/
 .breakpoints
 replit.nix
 .config/
+
+# Virtual Environment
+venv/
+.env/
+.venv/

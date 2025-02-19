@@ -10,10 +10,10 @@ class States(Enum):
     ADD_ENTERING_DATA = auto()
     ADD_CONFIRMATION = auto()
 
-    # Состояния для редактирования
-    EDIT_CHOOSE_ACTION = auto()
-    EDIT_CHOOSE_ITEM = auto()
-    EDIT_CHOOSE_FIELD = auto()
-    EDIT_VALUE = auto()
-    EDIT_CONFIRM_DELETE = auto()
-  
+    # Состояния для редактирования/удаления
+    EDIT_DELETE_SELECT_ACTION = auto()  # Новое состояние для выбора действия
+    EDIT_DELETE_CHOOSING = auto()    # Выбор элемента для редактирования/удаления
+    EDIT_CHOOSING_FIELD = auto()     # Выбор поля для редактирования
+    EDIT_ENTERING_VALUE = auto()     # Ввод нового значения
+    EDIT_CONFIRM_EXIT = auto()       # Подтверждение выхода с несохраненными изменениями
+    DELETE_CONFIRM = auto()          # Подтверждение удаления

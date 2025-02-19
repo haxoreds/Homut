@@ -30,6 +30,16 @@ from change_quantity import (
     invalid_input_in_adjusting,
 )
 
+from edit_delete_item import (
+    show_edit_delete_menu,
+    handle_edit_choice,
+    handle_edit_field,
+    handle_edit_value,
+    handle_delete_confirm,
+    handle_exit_options,
+    handle_action_selection
+)
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -61,14 +71,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     logger.info(f"Button callback received with data: {data}")
 
-    # Skip handling if the callback data should be handled by conversation handlers
     if any(data.startswith(prefix) for prefix in [
         'item_', 
         'adjust_quantity:', 
         'done_adjustment', 
         'go_back', 
         'save_and_exit', 
-        'exit_without_saving'
+        'exit_without_saving',
+        'editdelete',
+        'edit_',
+        'delete_',
+        'edit_field_',
+        'confirm_delete',
+        'back_to_menu',
+        'save_exit',
+        'exit_without_save'
     ]):
         logger.info(f"Skipping button handler for conversation callback: {data}")
         return
@@ -103,16 +120,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             context.user_data['action'] = action
             await add_new_item(update, context)
             return
-        elif action.startswith('updatedb'):
-            context.user_data['action'] = action
-            await query.message.reply_text(
-                "Эта функция находится в разработке.",
-                reply_markup=back_to_menu_keyboard(current_menu)
-            )
-            return
         elif action.startswith('changequantity'):
             context.user_data['action'] = action
             await change_quantity_callback(update, context)
+            return
+        elif action.startswith('editdelete'):
+            context.user_data['action'] = action
+            await show_edit_delete_menu(update, context)
             return
         elif action in [
             'compatibility_parts',
@@ -149,7 +163,6 @@ def main() -> None:
 
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Conversation handler for changing quantity
     conv_handler = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(change_quantity_callback, pattern='^changequantity.*$')
@@ -180,15 +193,14 @@ def main() -> None:
         allow_reentry=True
     )
 
-    # Add new item conversation handler
     add_item_conv_handler = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(add_new_item, pattern='^addnewitem.*$')
         ],
         states={
             States.ADD_ENTERING_DATA: [
-                CallbackQueryHandler(handle_new_item_input, pattern='^.*$'),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, invalid_input)
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_item_input),
+                CallbackQueryHandler(go_back, pattern='^go_back$')
             ]
         },
         fallbacks=[
@@ -200,18 +212,51 @@ def main() -> None:
         allow_reentry=True
     )
 
-    # Add handlers in correct order
+    edit_delete_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(show_edit_delete_menu, pattern='^editdelete.*$')
+        ],
+        states={
+            States.EDIT_DELETE_SELECT_ACTION: [
+                CallbackQueryHandler(handle_action_selection, pattern='^select_(edit|delete)$'),
+                CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+            ],
+            States.EDIT_DELETE_CHOOSING: [
+                CallbackQueryHandler(handle_edit_choice, pattern='^(edit|delete)_\d+$'),
+                CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+            ],
+            States.EDIT_CHOOSING_FIELD: [
+                CallbackQueryHandler(handle_edit_field, pattern='^edit_field_.*$'),
+                CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+            ],
+            States.EDIT_ENTERING_VALUE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_edit_value),
+                CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+            ],
+            States.DELETE_CONFIRM: [
+                CallbackQueryHandler(handle_delete_confirm, pattern='^confirm_delete$'),
+                CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+            ]
+        },
+        fallbacks=[
+            CommandHandler('start', start),
+            CallbackQueryHandler(show_edit_delete_menu, pattern='^back$')
+        ],
+        name="edit_delete",
+        persistent=False,
+        allow_reentry=True
+    )
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(conv_handler)
     application.add_handler(add_item_conv_handler)
+    application.add_handler(edit_delete_handler)
     application.add_handler(CallbackQueryHandler(button))
     application.add_error_handler(error_handler)
 
-    # Add startup and shutdown handlers
     application.post_init = on_startup
     application.post_shutdown = on_shutdown
 
-    # Start the bot
     application.run_polling()
 
 if __name__ == '__main__':
