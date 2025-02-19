@@ -1,39 +1,31 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder,
+    ContextTypes,
+    ConversationHandler,
     CallbackQueryHandler,
-    CommandHandler,
     MessageHandler,
     filters,
-    ConversationHandler,
-    ContextTypes,
 )
+from telegram.constants import ParseMode
 from database import get_stamp_id_by_action
-from menu import menu, create_inventory_submenus, inventory_list, get_menu_keyboard,back_to_menu_keyboard
+from menu import menu, create_inventory_submenus, inventory_list, get_menu_keyboard, back_to_menu_keyboard
 import logging
 import re
 import sqlite3
 from urllib.parse import urlparse
-from telegram.constants import ParseMode
 from change_quantity import go_back
-from validators import url as url_validator
+import validators
 from constants import States
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-
-
-async def invalid_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def invalid_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> States:
     await update.message.reply_text(
         "Пожалуйста, введите корректные данные согласно инструкции или нажмите 'Назад' для возврата.",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Назад", callback_data='go_back')]]
-        )
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data='go_back')]])
     )
     return States.ADD_ENTERING_DATA
-
-
 
 async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("add_new_item called")
@@ -91,19 +83,62 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             "Пример:\n""`{example}`"
         )
 
-        # Кнопка "Назад"
-        back_button = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔙 Назад", callback_data='back')]]
-        )
+        # Кнопки для ввода данных
+        keyboard = []
+        if category == 'punches':
+            keyboard = [
+                [InlineKeyboardButton("Пуансон A, 10, Тип B, Размер C", callback_data="Пуансон A, 10, Тип B, Размер C")],
+                [InlineKeyboardButton("Пуансон B, 5", callback_data="Пуансон B, 5")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'inserts':
+            keyboard = [
+                [InlineKeyboardButton("Вставка A, 5, Размер B", callback_data="Вставка A, 5, Размер B")],
+                [InlineKeyboardButton("Вставка C, 3", callback_data="Вставка C, 3")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'stampparts':
+            keyboard = [
+                [InlineKeyboardButton("Запчасть A, 3", callback_data="Запчасть A, 3")],
+                [InlineKeyboardButton("Запчасть B, 2", callback_data="Запчасть B, 2")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'knives':
+            keyboard = [
+                [InlineKeyboardButton("Нож A, 7, Размер B", callback_data="Нож A, 7, Размер B")],
+                [InlineKeyboardButton("Нож C, 4", callback_data="Нож C, 4")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'cams':
+            keyboard = [
+                [InlineKeyboardButton("Кулачок A, 15", callback_data="Кулачок A, 15")],
+                [InlineKeyboardButton("Кулачок B, 10", callback_data="Кулачок B, 10")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'discparts':
+            keyboard = [
+                [InlineKeyboardButton("Запчасть для диска A, 20", callback_data="Запчасть для диска A, 20")],
+                [InlineKeyboardButton("Запчасть для диска B, 15", callback_data="Запчасть для диска B, 15")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
+        elif category == 'pushers':
+            keyboard = [
+                [InlineKeyboardButton("Толкатель A, 8, Размер B", callback_data="Толкатель A, 8, Размер B")],
+                [InlineKeyboardButton("Толкатель C, 6", callback_data="Толкатель C, 6")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="go_back")]
+            ]
 
-        # Формируем сообщение для пользователя в зависимости от категории
+        # Создаем разметку клавиатуры
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Отправляем сообщение с инструкцией и клавиатурой
         if category == 'punches':
             fields = "Имя, Количество, Тип(необязательно), Размер (необязательно), URL изображения (необязательно), Описание (необязательно)"
             example = "Пуансон A, 10, Тип B, Размер C, https://image.url, Описание"
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for punches.")
         elif category == 'inserts':
@@ -112,7 +147,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for inserts.")
         elif category == 'stampparts':
@@ -121,7 +156,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for stampparts.")
         elif category == 'knives':
@@ -130,7 +165,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for knives.")
         elif category == 'cams':
@@ -139,7 +174,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for cams.")
         elif category == 'discparts':
@@ -148,7 +183,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for discparts.")
         elif category == 'pushers':
@@ -157,7 +192,7 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             await query.message.reply_text(
                 instruction_template.format(fields=fields, example=example),
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=back_button
+                reply_markup=reply_markup
             )
             logger.info("Sent message for pushers.")
         else:
@@ -204,29 +239,38 @@ def get_category_table_name(category):
     return category_tables.get(category)
 
 async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    logger.info("handle_new_item_input called")
-    user_input = update.message.text.strip()
+    query = update.callback_query
+    await query.answer()
+
+    user_input = query.data.strip()
     category = context.user_data.get('adding_category')
     current_menu = context.user_data.get('current_menu')
     action = context.user_data.get('action')
     db = context.application.db
     back_button = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data='go_back')]])
 
-    if not user_input:
-        await update.message.reply_text(
-            "Ошибка: Вы не ввели никаких данных. Пожалуйста, введите данные.",
-            reply_markup=back_button
+    if user_input == 'go_back':
+        await query.message.reply_text(
+            "Действие отменено.",
+            reply_markup=back_to_menu_keyboard(current_menu)
         )
-        return ADD_ENTERING_DATA
+        return ConversationHandler.END
+
+    if not user_input:
+        await query.message.reply_text(
+            "Ошибка: Вы не ввели никаких данных. Пожалуйста, выберите один из предложенных вариантов.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data='go_back')]])
+        )
+        return States.ADD_ENTERING_DATA
 
     if not category:
-        await update.message.reply_text("Ошибка: Неизвестная категория. Повторите попытку.")
+        await query.message.reply_text("Ошибка: Неизвестная категория. Повторите попытку.")
         return ConversationHandler.END
 
     data = [item.strip() for item in user_input.split(',')]
 
     if len(data) < 2:
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Ошибка: Недостаточно данных. Пожалуйста, введите как минимум *Имя* и *Количество*.",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=back_button
@@ -239,17 +283,17 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
 
     # Проверка имени
     if len(name) > MAX_NAME_LENGTH:
-        await update.message.reply_text(
+        await query.message.reply_text(
             f"Ошибка: Имя не должно превышать {MAX_NAME_LENGTH} символов.",
             reply_markup=back_button
         )
-        return ADD_ENTERING_DATA
+        return States.ADD_ENTERING_DATA
     if not NAME_PATTERN.match(name):
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Ошибка: Имя содержит недопустимые символы.",
             reply_markup=back_button
         )
-        return ADD_ENTERING_DATA
+        return States.ADD_ENTERING_DATA
 
     # Проверка количества
     try:
@@ -257,7 +301,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if quantity < 0 or quantity > MAX_QUANTITY:
             raise ValueError
     except ValueError:
-        await update.message.reply_text(
+        await query.message.reply_text(
             f"Ошибка: Количество должно быть числом от 0 до {MAX_QUANTITY}. Пожалуйста, введите данные заново.",
             reply_markup=back_button
         )
@@ -278,7 +322,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             type_ = optional_data[0].strip()
             if len(type_) > MAX_TYPE_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Тип не должен превышать {MAX_TYPE_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -286,15 +330,15 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 2:
             size = optional_data[1].strip()
             if len(size) > MAX_SIZE_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Размер не должен превышать {MAX_SIZE_LENGTH} символов.",
                     reply_markup=back_button
                 )
                 return States.ADD_ENTERING_DATA
         if len(optional_data) >= 3:
             image_url = optional_data[2].strip()
-            if len(image_url) > MAX_URL_LENGTH or not url_validator(image_url):
-                await update.message.reply_text(
+            if len(image_url) > MAX_URL_LENGTH or not validators.url(image_url):
+                await query.message.reply_text(
                     "Ошибка: Введите корректный URL изображения.",
                     reply_markup=back_button
                 )
@@ -302,7 +346,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 4:
             description = optional_data[3].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -313,7 +357,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             size = optional_data[0].strip()
             if len(size) > MAX_SIZE_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Размер не должен превышать {MAX_SIZE_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -321,7 +365,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 2:
             description = optional_data[1].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -332,7 +376,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             description = optional_data[0].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -343,7 +387,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             size = optional_data[0].strip()
             if len(size) > MAX_SIZE_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Размер не должен превышать {MAX_SIZE_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -351,7 +395,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 2:
             description = optional_data[1].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -362,7 +406,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             description = optional_data[0].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -373,7 +417,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             description = optional_data[0].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -384,7 +428,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 1:
             size = optional_data[0].strip()
             if len(size) > MAX_SIZE_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Размер не должен превышать {MAX_SIZE_LENGTH} символов.",
                     reply_markup=back_button
                 )
@@ -392,14 +436,14 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         if len(optional_data) >= 2:
             description = optional_data[1].strip()
             if len(description) > MAX_DESCRIPTION_LENGTH:
-                await update.message.reply_text(
+                await query.message.reply_text(
                     f"Ошибка: Описание не должно превышать {MAX_DESCRIPTION_LENGTH} символов.",
                     reply_markup=back_button
                 )
                 return States.ADD_ENTERING_DATA
 
     else:
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Добавление для этой категории не реализовано.",
             reply_markup=back_to_menu_keyboard(current_menu)
         )
@@ -408,7 +452,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
     # Получаем stamp_id
     stamp_id = await get_stamp_id_by_action(action)
     if not stamp_id:
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Ошибка: Не удалось определить штамп.",
             reply_markup=back_to_menu_keyboard(current_menu)
         )
@@ -417,7 +461,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
     # Проверяем, существует ли элемент с таким же именем (без учета регистра)
     category_table = get_category_table_name(category)
     if not category_table:
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Ошибка: Не удалось определить таблицу для категории.",
             reply_markup=back_to_menu_keyboard(current_menu)
         )
@@ -430,11 +474,11 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
     existing_item = await cursor.fetchone()
 
     if existing_item:
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Ошибка: Элемент с таким именем уже существует. Пожалуйста, введите уникальное имя.",
             reply_markup=back_button
         )
-        return ADD_ENTERING_DATA
+        return States.ADD_ENTERING_DATA
 
     # Вставляем данные в базу
     try:
@@ -495,5 +539,21 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             category_name = 'Толкатель'
 
         else:
-            await update.message.reply_text(
-                "Добавление для этой категории не реализовано.
+            await query.message.reply_text(
+                "Добавление для этой категории не реализовано."
+            )
+            return ConversationHandler.END
+
+    except Exception as e:
+        logger.exception("Exception during database insertion")
+        await query.message.reply_text(
+            "❗️ Произошла ошибка при добавлении в базу данных. Пожалуйста, попробуйте позже.",
+            reply_markup=back_to_menu_keyboard(current_menu)
+        )
+        return ConversationHandler.END
+
+    await query.message.reply_text(
+        f"✅ Новый {category_name} успешно добавлен!",
+        reply_markup=back_to_menu_keyboard(current_menu)
+    )
+    return ConversationHandler.END
