@@ -3,63 +3,30 @@ import sqlite3
 import re
 import aiosqlite
 from menu import menu, create_inventory_submenus, inventory_list, get_menu_keyboard, back_to_menu_keyboard
+
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Функция для получения соединения с базой данных
 def get_connection():
-    # Укажите путь к вашей базе данных
-    return sqlite3.connect('inventory.db')
+    """Получение соединения с базой данных"""
+    try:
+        conn = sqlite3.connect('inventory.db')
+        # Включаем поддержку внешних ключей
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+    except sqlite3.Error as e:
+        logger.error(f"Ошибка при подключении к базе данных: {e}")
+        raise
 
-# Если вы хотите использовать асинхронное подключение, используйте aiosqlite
-def get_async_connection():
-    return aiosqlite.connect('inventory.db')
-
-# Функция для получения stamp_id по действию
-async def get_stamp_id_by_action(action):
-    # Извлекаем категорию и inv_id из action
-    category_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete)([a-z]+)', action)
-    if category_match:
-        category = category_match.group(1)
-    else:
-        logger.warning(f"Не удалось извлечь категорию из action: {action}")
-        return None
-
-    inv_id_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete)[a-z]+(.+)', action)
-    if inv_id_match:
-        inv_id_full = inv_id_match.group(1)
-        logger.info(f"Извлечённый inv_id: {inv_id_full} из action: {action}")
-    else:
-        logger.warning("Не удалось извлечь inv_id из action.")
-        return None
-
-    # Обрабатываем inv_id, удаляя дополнительные суффиксы, если они есть
-    inv_id_processed = '_'.join(inv_id_full.split('_')[:2])  # Берём только первые две части inv_id
-    logger.info(f"Обработанный inv_id: {inv_id_processed}")
-
-    # Ищем inv_id в inventory_list
-    from menu import inventory_list  # Импортируем inventory_list из menu.py
-    inv_name = None
-    for inv_id_item, inv_name_item in inventory_list:
-        if inv_id_item == inv_id_full or inv_id_item == inv_id_processed:
-            inv_name = inv_name_item
-            logger.info(f"Найден inv_name: {inv_name} для inv_id: {inv_id_item}")
-            break
-    if not inv_name:
-        logger.warning(f"inv_id {inv_id_full} не найден в inventory_list.")
-        return None
-
-    # Получаем stamp_id из базы данных на основе inv_name
-    async with get_async_connection() as db:
-        async with db.execute("SELECT id FROM Stamps WHERE name = ?", (inv_name,)) as cursor:
-            result = await cursor.fetchone()
-            if result:
-                stamp_id = result[0]
-                logger.info(f"Найден stamp_id: {stamp_id}")
-                return stamp_id
-            else:
-                logger.warning(f"Штамп с именем {inv_name} не найден в базе данных.")
-                return None
+async def get_async_connection():
+    """Получение асинхронного соединения с базой данных"""
+    try:
+        conn = await aiosqlite.connect('inventory.db')
+        await conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+    except aiosqlite.Error as e:
+        logger.error(f"Ошибка при асинхронном подключении к базе данных: {e}")
+        raise
 
 # Функция получения названия таблицы по категории
 def get_table_name(category):
@@ -72,9 +39,26 @@ def get_table_name(category):
         'cams': 'Clamps',
         'discparts': 'Disc_Parts',
         'stampparts': 'Parts',
-        # Добавьте остальные соответствия
+        'drawings': 'Drawings'  # Добавляем таблицу чертежей
     }
     return category_to_table.get(category)
+
+# Функция для получения stamp_id по действию
+async def get_stamp_id_by_action(action):
+    """Получение stamp_id на основе действия"""
+    try:
+        # Извлекаем категорию и inv_id из action
+        category_match = re.match(r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete|upload_for_stamp_)(\d+)', action)
+        if category_match:
+            stamp_id = category_match.group(1)
+            logger.info(f"Извлечён stamp_id: {stamp_id} из action: {action}")
+            return int(stamp_id)
+        else:
+            logger.warning(f"Не удалось извлечь stamp_id из action: {action}")
+            return None
+    except Exception as e:
+        logger.error(f"Ошибка при получении stamp_id: {e}")
+        return None
 
 # Функция получения списка позиций в категории для данного штампа
 async def get_items_in_category(category, inv_id):

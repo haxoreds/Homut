@@ -13,7 +13,6 @@ import logging
 import re
 import sqlite3
 from urllib.parse import urlparse
-from change_quantity import go_back
 import validators
 from constants import States
 
@@ -23,7 +22,7 @@ logger = logging.getLogger(__name__)
 async def invalid_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> States:
     await update.message.reply_text(
         "Пожалуйста, введите корректные данные согласно инструкции или нажмите 'Назад' для возврата.",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data='go_back')]])
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data='go_back')]])
     )
     return States.ADD_ENTERING_DATA
 
@@ -38,8 +37,16 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         logger.info(f"Action received: {action}")
         context.user_data['action'] = action  # Сохраняем действие для последующего использования
 
-        # Извлекаем текущее меню или устанавливаем по умолчанию
+        # Сохраняем текущий путь меню для корректного возврата
+        if 'menu_path' not in context.user_data:
+            context.user_data['menu_path'] = ['main_menu']
         current_menu = context.user_data.get('current_menu', 'main_menu')
+        context.user_data['menu_path'].append(current_menu)
+
+        logger.info(f"Current menu path: {context.user_data['menu_path']}")
+
+        # Извлекаем текущее меню или устанавливаем по умолчанию
+
         logger.info(f"Current menu: {current_menu}")
 
         # Создаём словарь для соответствия категорий и префиксов action
@@ -133,10 +140,11 @@ async def add_new_item(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     except Exception as e:
         logger.exception("Exception in add_new_item")
-        await query.message.reply_text(
-            "❗️ Произошла ошибка. Пожалуйста, попробуйте позже.",
-            reply_markup=back_to_menu_keyboard(current_menu)
-        )
+        if 'query' in locals():
+            await query.message.reply_text(
+                "❗️ Произошла ошибка. Пожалуйста, попробуйте позже.",
+                reply_markup=back_to_menu_keyboard(current_menu)
+            )
         return ConversationHandler.END
 
 MAX_NAME_LENGTH = 100
@@ -246,9 +254,6 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return ConversationHandler.END
 
-    # Остальной код остается без изменений...
-    # (оставляю здесь остальную логику обработки и сохранения данных)
-
     db = context.application.db
     # Проверяем существование элемента с таким же именем
     category_table = get_category_table_name(category)
@@ -268,7 +273,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[5].strip() if len(data) > 5 else ''
 
             await db.execute(
-                "INSERT INTO Punches (stamp_id, name, quantity, type, size, image_url, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Punches (stamp_id, name, quantity, type, size, image_url, description, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, type_, size, image_url, description)
             )
             await db.commit()
@@ -279,7 +284,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[3].strip() if len(data) > 3 else ''
 
             await db.execute(
-                "INSERT INTO Inserts (stamp_id, name, quantity, size, description) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO Inserts (stamp_id, name, quantity, size, description, last_modified) VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, size, description)
             )
             await db.commit()
@@ -289,7 +294,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[2].strip() if len(data) > 2 else ''
 
             await db.execute(
-                "INSERT INTO Parts (stamp_id, name, quantity, description) VALUES (?, ?, ?, ?)",
+                "INSERT INTO Parts (stamp_id, name, quantity, description, last_modified) VALUES (?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, description)
             )
             await db.commit()
@@ -300,7 +305,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[3].strip() if len(data) > 3 else ''
 
             await db.execute(
-                "INSERT INTO Knives (stamp_id, name, quantity, size, description) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO Knives (stamp_id, name, quantity, size, description, last_modified) VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, size, description)
             )
             await db.commit()
@@ -310,7 +315,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[2].strip() if len(data) > 2 else ''
 
             await db.execute(
-                "INSERT INTO Clamps (stamp_id, name, quantity, description) VALUES (?, ?, ?, ?)",
+                "INSERT INTO Clamps (stamp_id, name, quantity, description, last_modified) VALUES (?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, description)
             )
             await db.commit()
@@ -320,7 +325,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[2].strip() if len(data) > 2 else ''
 
             await db.execute(
-                "INSERT INTO Disc_Parts (stamp_id, name, quantity, description) VALUES (?, ?, ?, ?)",
+                "INSERT INTO Disc_Parts (stamp_id, name, quantity, description, last_modified) VALUES (?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, description)
             )
             await db.commit()
@@ -331,7 +336,7 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             description = data[3].strip() if len(data) > 3 else ''
 
             await db.execute(
-                "INSERT INTO Pushers (stamp_id, name, quantity, size, description) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO Pushers (stamp_id, name, quantity, size, description, last_modified) VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'))",
                 (stamp_id, name, quantity, size, description)
             )
             await db.commit()
@@ -356,3 +361,25 @@ async def handle_new_item_input(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=back_to_menu_keyboard(current_menu)
         )
         return ConversationHandler.END
+
+
+async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    # Получаем последнее меню из пути
+    menu_path = context.user_data.get('menu_path', ['main_menu'])
+    if len(menu_path) > 0:
+        menu_path.pop()  # Удаляем текущее меню
+        previous_menu = menu_path[-1] if menu_path else 'main_menu'
+        context.user_data['current_menu'] = previous_menu
+    else:
+        previous_menu = 'main_menu'
+
+    # Возвращаемся к предыдущему меню
+    keyboard = get_menu_keyboard(previous_menu)
+    await query.message.edit_text(
+        text=menu[previous_menu]['text'],
+        reply_markup=keyboard
+    )
+    return ConversationHandler.END

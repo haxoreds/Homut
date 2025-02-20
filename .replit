@@ -31,7 +31,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python init_db.py"
+args = "python update_timestamps.py"
 
 [[workflows.workflow]]
 name = "Telegram Bot"
@@ -48,4 +48,4 @@ task = "shell.exec"
 args = "python homut.py"
 
 [deployment]
-run = ["sh", "-c", "python init_db.py"]
+run = ["sh", "-c", "python update_timestamps.py"]

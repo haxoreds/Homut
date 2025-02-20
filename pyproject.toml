@@ -12,6 +12,8 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "python-telegram-bot>=20.0",
     "telegram>=0.0.1",
+    "trafilatura>=2.0.0",
+    "twilio>=9.4.6",
     "update>=0.0.1",
     "validators>=0.34.0",
 ]

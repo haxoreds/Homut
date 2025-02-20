@@ -1,5 +1,6 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
+
 # Определение меню
 menu = {
     'main_menu': {
@@ -12,6 +13,15 @@ menu = {
             'Канцелярия': 'stationery',
             'Настройка Штампов': 'stamp_settings',
             'Вывод информации в EXCEL': 'export_to_excel',
+        },
+    },
+    'compatibility_menu': {
+        'text': 'Меню совместимости деталей',
+        'buttons': {
+            'Проверить совместимость': 'check_compatibility',
+            'Добавить совместимость': 'add_compatibility',
+            'Изменить совместимость': 'edit_compatibility',
+            'Назад': 'back',
         },
     },
 }
@@ -132,34 +142,14 @@ inventory_list = [
 for inv_id, inv_name in inventory_list:
     create_inventory_submenus(inv_id, inv_name)
 
-# Здесь должно быть определено меню 'inventory_stamps' и все подменю
+# Инвентарь штампов
 menu['inventory_stamps'] = {
     'text': 'Инвентарь штампов',
-    'buttons': {inv_name: f'inventory_{inv_id}' for inv_id, inv_name in inventory_list},
+    'buttons': {
+        **{inv_name: f'inventory_{inv_id}' for inv_id, inv_name in inventory_list},
+        'Назад': 'back'
+    },
 }
-
-# Функция для обработки основных действий
-async def process_main_menu_action(action, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if action == 'compatibility_parts':
-        # Код для "Совместимость деталей"
-        await update.callback_query.message.reply_text("Показываю совместимость деталей.")
-    elif action == 'drawings':
-        # Код для "Чертежи"
-        await update.callback_query.message.reply_text("Показываю чертежи.")
-    elif action == 'bolt_accounting':
-        # Код для "Учёт болтов"
-        await update.callback_query.message.reply_text("Показываю учёт болтов.")
-    elif action == 'stationery':
-        # Код для "Канцелярия"
-        await update.callback_query.message.reply_text("Показываю канцелярию.")
-    elif action == 'stamp_settings':
-        # Код для "Настройка Штампов"
-        await update.callback_query.message.reply_text("Показываю настройку штампов.")
-    elif action == 'export_to_excel':
-        # Код для "Вывод информации в EXCEL"
-        await update.callback_query.message.reply_text("Вывожу информацию в EXCEL.")
-    else:
-        await update.callback_query.message.reply_text("Действие не распознано.")
 
 def get_menu_keyboard(menu_name):
     buttons = []
@@ -168,6 +158,60 @@ def get_menu_keyboard(menu_name):
     return InlineKeyboardMarkup(buttons)
 
 def back_to_menu_keyboard(menu_name):
+    """Return a keyboard with only a back button"""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Назад", callback_data='back')]
+        [InlineKeyboardButton("🔙 Назад", callback_data='back')]
     ])
+
+# Функция для обработки основных действий
+async def process_main_menu_action(action, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if action == 'compatibility_parts':
+        await update.callback_query.message.reply_text(
+            "Меню совместимости деталей",
+            reply_markup=get_menu_keyboard('compatibility_menu')
+        )
+    elif action == 'check_compatibility':
+        await update.callback_query.message.reply_text(
+            "Показываю проверку совместимости деталей.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'add_compatibility':
+        await update.callback_query.message.reply_text(
+            "Показываю добавление совместимости деталей.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'edit_compatibility':
+        await update.callback_query.message.reply_text(
+            "Показываю изменение совместимости деталей.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'bolt_accounting':
+        await update.callback_query.message.reply_text(
+            "Показываю учёт болтов.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'stationery':
+        await update.callback_query.message.reply_text(
+            "Показываю канцелярию.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'stamp_settings':
+        await update.callback_query.message.reply_text(
+            "Показываю настройку штампов.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'export_to_excel':
+        await update.callback_query.message.reply_text(
+            "Вывожу информацию в EXCEL.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )
+    elif action == 'back':
+        await update.callback_query.message.reply_text(
+            "Возвращаюсь в главное меню.",
+            reply_markup=get_menu_keyboard('main_menu')
+        )
+    else:
+        await update.callback_query.message.reply_text(
+            "Действие не распознано.",
+            reply_markup=back_to_menu_keyboard(context.user_data.get('current_menu', 'main_menu'))
+        )

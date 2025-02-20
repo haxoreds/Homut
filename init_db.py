@@ -129,6 +129,22 @@ def init_db():
         )
         ''')
 
+        # Создаем таблицу совместимости деталей
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Parts_Compatibility (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_stamp_id INTEGER,
+            target_stamp_id INTEGER,
+            part_type TEXT NOT NULL,
+            part_id INTEGER,
+            notes TEXT,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (source_stamp_id) REFERENCES Stamps(id),
+            FOREIGN KEY (target_stamp_id) REFERENCES Stamps(id)
+        )
+        ''')
+
         # Фиксируем изменения
         conn.commit()
         logger.info("База данных успешно инициализирована")

@@ -1,9 +1,10 @@
+<replit_final_file>
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 from database import (
     get_items_in_category,
     get_item_by_id,
-    update_item_field,
+    #update_item_field, #removed the original function
     delete_item_from_database
 )
 from menu import back_to_menu_keyboard  # Предполагаю, что эта функция у вас реализована
@@ -155,7 +156,6 @@ async def edit_value_received(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # Обновляем данные в базе
     await update_item_field(category, item_id, field, new_value)
-
     await update.message.reply_text('Данные успешно обновлены.')
 
     # Очищаем сохраненные данные
@@ -165,3 +165,32 @@ async def edit_value_received(update: Update, context: ContextTypes.DEFAULT_TYPE
     await show_items_list_for_edit(update, context, category, context.user_data.get('inv_id'))
 
     return States.EDIT_CHOOSE_ITEM  # Продолжаем диалог
+
+# Функция обновления поля позиции
+async def update_item_field(category, item_id, field, value):
+    table_name = get_table_name(category)
+    if not table_name:
+        logger.warning(f"Таблица не найдена для категории {category}")
+        return
+
+    async with get_async_connection() as conn:
+        query = f"UPDATE {table_name} SET {field} = ?, last_modified = datetime('now', '+3 hours') WHERE id = ?"
+        await conn.execute(query, (value, item_id))
+        await conn.commit()
+        logger.info(f"Обновлено поле {field} для позиции id {item_id} в таблице {table_name}.")
+
+def get_table_name(category):
+    # Replace this with your actual logic to get the table name based on category
+    # This is a placeholder,  you need to implement this function based on your database structure
+    table_names = {
+        "category1": "table1",
+        "category2": "table2"
+    }
+    return table_names.get(category)
+
+async def get_async_connection():
+    # Replace this with your actual logic to get an asynchronous database connection
+    # This is a placeholder; you must implement this based on your database setup (e.g., using a library like `aiosqlite`)
+    import aiosqlite
+    async with aiosqlite.connect('your_database.db') as db:
+      yield db

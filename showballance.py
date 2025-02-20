@@ -1,17 +1,29 @@
 import logging
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 from menu import menu
 from database import get_stamp_id_by_action
 from menu import process_main_menu_action
 from menu import back_to_menu_keyboard
+
 logger = logging.getLogger(__name__)
 
-# Функция для отображения остатка с кнопкой "Изменить количество"
+# Словарь эмодзи для категорий
+CATEGORY_EMOJI = {
+    'Punches': '🔨',
+    'Inserts': '🔧',
+    'Parts': '⚙️',
+    'Knives': '🔪',
+    'Clamps': '🗜️',
+    'Disc_Parts': '💿',
+    'Pushers': '👊'
+}
+
 async def show_balance(query, context, action, current_menu):
     db = context.application.db
     logger.info(f"Action: {action}, Current Menu: {current_menu}")
-    # Определение таблицы на основе действия
+
     table = None
     if 'punches' in action:
         table = 'Punches'
@@ -33,12 +45,10 @@ async def show_balance(query, context, action, current_menu):
         )
         return
 
-    # Сохранение информации о таблице и меню в user_data
     context.user_data['table'] = table
     context.user_data['current_menu'] = current_menu
     context.user_data['action'] = action
 
-    # Получение stamp_id
     stamp_id = await get_stamp_id_by_action(action)
     if not stamp_id:
         await query.message.reply_text(
@@ -46,13 +56,19 @@ async def show_balance(query, context, action, current_menu):
         )
         return
 
-    # Сохранение stamp_id в user_data
     context.user_data['stamp_id'] = stamp_id
 
-    # Получение данных из базы данных
     try:
+        # Изменяем запрос для единообразного отображения времени
         async with db.execute(
-            f"SELECT name, quantity FROM {table} WHERE stamp_id = ?", (stamp_id,)
+            f"""SELECT 
+                id, name, quantity, type, size, image_url, description,
+                datetime(createdAt, '+3 hours') as created_at,
+                datetime(updatedAt, '+3 hours') as updated_at,
+                datetime(last_modified, '+3 hours') as last_modified
+            FROM {table} 
+            WHERE stamp_id = ?""", 
+            (stamp_id,)
         ) as cursor:
             rows = await cursor.fetchall()
     except Exception as e:
@@ -63,16 +79,41 @@ async def show_balance(query, context, action, current_menu):
         )
         return
 
-    # Формирование сообщения с остатком
     if not rows:
         message = "Данных нет."
     else:
-        message = f"Остаток по {menu[current_menu]['text']}:\n"
-        for name, quantity in rows:
-            message += f"- {name}: {quantity}\n"
+        emoji = CATEGORY_EMOJI.get(table, '📦')
+        message = f"{emoji} <b>Остаток по {menu[current_menu]['text']}</b>\n\n"
 
-    # Создание клавиатуры с кнопкой "Изменить количество"
-    # Получаем новое действие для изменения количества
+        for row in rows:
+            # Получаем все колонки из результата запроса
+            columns = [description[0] for description in cursor.description]
+            data = dict(zip(columns, row))
+
+            message += f"<b>{data['name']}</b>\n"
+            message += f"└ Количество: {data['quantity']}\n"
+
+            # Добавляем дополнительные поля с единообразным форматированием времени
+            for key, value in data.items():
+                if key not in ['name', 'quantity', 'stamp_id', 'id']:
+                    # Сначала проверяем временные метки
+                    if key == 'created_at':
+                        message += f"└ Создано: {value or '(данные отсутствуют)'}\n"
+                    elif key == 'updated_at':
+                        message += f"└ Обновлено: {value or '(данные отсутствуют)'}\n"
+                    elif key == 'last_modified':
+                        message += f"└ Последнее изменение: {value or '(данные отсутствуют)'}\n"
+                    # Затем проверяем остальные поля
+                    elif key == 'type':
+                        message += f"└ Тип: {value or '(данные отсутствуют)'}\n"
+                    elif key == 'size':
+                        message += f"└ Размер: {value or '(данные отсутствуют)'}\n"
+                    elif key == 'image_url':
+                        message += f"└ Фото: {value or '(данные отсутствуют)'}\n"
+                    elif key == 'description':
+                        message += f"└ Описание: {value or '(данные отсутствуют)'}\n"
+            message += "\n"
+
     change_quantity_action = action.replace('showbalance', 'changequantity')
 
     keyboard = InlineKeyboardMarkup(
@@ -82,6 +123,8 @@ async def show_balance(query, context, action, current_menu):
         ]
     )
 
-    await query.message.reply_text(message, reply_markup=keyboard)
-
-
+    await query.message.reply_text(
+        message, 
+        reply_markup=keyboard,
+        parse_mode=ParseMode.HTML
+    )

@@ -350,10 +350,15 @@ async def done_adjustment(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.message.reply_text("Штамп не найден.")
         return ConversationHandler.END
 
-    # Обновляем количество в базе данных
+    # Обновляем количество в базе данных с учетом московского времени
     try:
         await db.execute(
-            f"UPDATE {table} SET quantity = ? WHERE stamp_id = ? AND name = ?",
+            f"""
+            UPDATE {table} 
+            SET quantity = ?, 
+                last_modified = datetime('now', '+3 hours') 
+            WHERE stamp_id = ? AND name = ?
+            """,
             (new_quantity, stamp_id, item_name),
         )
         await db.commit()
