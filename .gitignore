@@ -39,11 +39,6 @@ logs/
 *.swp
 *.swo
 
-# Replit specific
-.replit
-.breakpoints
-replit.nix
-.config/
 
 # Virtual Environment
 venv/
