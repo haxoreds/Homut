@@ -59,18 +59,36 @@ async def show_balance(query, context, action, current_menu):
     context.user_data['stamp_id'] = stamp_id
 
     try:
-        # Изменяем запрос для единообразного отображения времени
-        async with db.execute(
-            f"""SELECT 
-                id, name, quantity, type, size, image_url, description,
-                datetime(createdAt, '+3 hours') as created_at,
-                datetime(updatedAt, '+3 hours') as updated_at,
-                datetime(last_modified, '+3 hours') as last_modified
+        # Get table columns
+        async with db.execute(f"PRAGMA table_info({table})") as cursor:
+            columns = await cursor.fetchall()
+            column_names = [col[1] for col in columns]
+            logger.info(f"Columns in {table}: {column_names}")
+
+        # Build dynamic SELECT query based on available columns
+        base_columns = ['id', 'name', 'quantity']  # Always required columns
+        optional_columns = ['size', 'description']  # Optional columns
+
+        select_columns = base_columns + [col for col in optional_columns if col in column_names]
+
+        # Add timestamp columns if they exist
+        if 'createdAt' in column_names:
+            select_columns.append("datetime(createdAt, '+3 hours') as created_at")
+        if 'updatedAt' in column_names:
+            select_columns.append("datetime(updatedAt, '+3 hours') as updated_at")
+        if 'last_modified' in column_names:
+            select_columns.append("datetime(last_modified, '+3 hours') as last_modified")
+
+        query_text = f"""
+            SELECT {', '.join(select_columns)}
             FROM {table} 
-            WHERE stamp_id = ?""", 
-            (stamp_id,)
-        ) as cursor:
+            WHERE stamp_id = ?
+        """
+        logger.info(f"Executing query: {query_text}")
+
+        async with db.execute(query_text, (stamp_id,)) as cursor:
             rows = await cursor.fetchall()
+
     except Exception as e:
         logger.exception("Ошибка при выполнении запроса к базе данных: %s", e)
         await query.message.reply_text(
@@ -86,32 +104,27 @@ async def show_balance(query, context, action, current_menu):
         message = f"{emoji} <b>Остаток по {menu[current_menu]['text']}</b>\n\n"
 
         for row in rows:
-            # Получаем все колонки из результата запроса
+            # Get column names from cursor description
             columns = [description[0] for description in cursor.description]
             data = dict(zip(columns, row))
 
             message += f"<b>{data['name']}</b>\n"
             message += f"└ Количество: {data['quantity']}\n"
 
-            # Добавляем дополнительные поля с единообразным форматированием времени
-            for key, value in data.items():
-                if key not in ['name', 'quantity', 'stamp_id', 'id']:
-                    # Сначала проверяем временные метки
-                    if key == 'created_at':
-                        message += f"└ Создано: {value or '(данные отсутствуют)'}\n"
-                    elif key == 'updated_at':
-                        message += f"└ Обновлено: {value or '(данные отсутствуют)'}\n"
-                    elif key == 'last_modified':
-                        message += f"└ Последнее изменение: {value or '(данные отсутствуют)'}\n"
-                    # Затем проверяем остальные поля
-                    elif key == 'type':
-                        message += f"└ Тип: {value or '(данные отсутствуют)'}\n"
-                    elif key == 'size':
-                        message += f"└ Размер: {value or '(данные отсутствуют)'}\n"
-                    elif key == 'image_url':
-                        message += f"└ Фото: {value or '(данные отсутствуют)'}\n"
-                    elif key == 'description':
-                        message += f"└ Описание: {value or '(данные отсутствуют)'}\n"
+            # Add optional fields if they exist in data
+            if 'size' in data and data['size']:
+                message += f"└ Размер: {data['size']}\n"
+            if 'description' in data and data['description']:
+                message += f"└ Описание: {data['description']}\n"
+
+            # Add timestamp information
+            if 'created_at' in data:
+                message += f"└ Создано: {data['created_at'] or '(данные отсутствуют)'}\n"
+            if 'updated_at' in data:
+                message += f"└ Обновлено: {data['updated_at'] or '(данные отсутствуют)'}\n"
+            if 'last_modified' in data:
+                message += f"└ Последнее изменение: {data['last_modified'] or '(данные отсутствуют)'}\n"
+
             message += "\n"
 
     change_quantity_action = action.replace('showbalance', 'changequantity')

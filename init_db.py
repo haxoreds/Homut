@@ -1,7 +1,25 @@
+"""
+Database Initialization Module - Модуль инициализации базы данных
+============================================================
+
+Этот модуль отвечает за создание структуры базы данных.
+Создает все необходимые таблицы:
+- Stamps (Штампы)
+- Punches (Пуансоны)
+- Inserts (Вставки)
+- Knives (Ножи)
+- Discs (Диски)
+- Pushers (Толкатели)
+- Clamps (Кулачки)
+- Parts (Запчасти)
+- Parts_Compatibility (Совместимость деталей)
+"""
+
 import sqlite3
 import logging
 from pathlib import Path
 
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -9,6 +27,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def init_db():
+    """
+    Инициализирует базу данных, создавая все необходимые таблицы.
+
+    Создает следующие таблицы:
+    1. Stamps - основная таблица штампов
+    2. Punches - таблица пуансонов
+    3. Inserts - таблица вставок
+    4. Knives - таблица ножей
+    5. Discs - таблица дисков
+    6. Clamps - таблица кулачков
+    7. Disc_Parts - таблица запчастей для дисковых штампов
+    8. Pushers - таблица толкателей
+    9. Parts - таблица запчастей
+    10. Parts_Compatibility - таблица совместимости деталей
+
+    Особенности реализации:
+    - Использует FOREIGN KEY для связей между таблицами
+    - Включает поддержку временных меток (TIMESTAMP)
+    - Автоматически создает первичные ключи (PRIMARY KEY)
+    """
+    conn = None
     try:
         # Создаем соединение с базой данных
         conn = sqlite3.connect('inventory.db')
@@ -153,7 +192,7 @@ def init_db():
         logger.error(f"Ошибка при инициализации базы данных: {e}")
         raise
     finally:
-        if 'conn' in locals():
+        if conn is not None:
             conn.close()
 
 if __name__ == '__main__':

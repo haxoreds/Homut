@@ -1,10 +1,16 @@
+
+
+# Logs
+*.log
+logs/
+homut.log
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -16,22 +22,14 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
-# Environment variables
-.env
-
-# Database
-*.db
-*.sqlite3
-inventory.db
-
-# Logs
-*.log
-logs/
-*.log.*
+# Drawings and uploads
+drawings/*
+!drawings/.gitkeep
 
 # IDE
 .idea/
@@ -39,8 +37,6 @@ logs/
 *.swp
 *.swo
 
-
-# Virtual Environment
-venv/
-.env/
-.venv/
+# OS
+.DS_Store
+Thumbs.db
