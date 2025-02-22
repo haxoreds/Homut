@@ -1,39 +1,8 @@
-# Homut - Telegram Bot for Warehouse Management
-
-Telegram-бот для управления складским учетом инструментов и деталей. Поддерживает работу с различными категориями: пуансоны, ножи, диски, вставки и другие специализированные компоненты.
-
-## Основные возможности
-
-- Отслеживание остатков товаров
-- Работа с множеством категорий инструментов
-- Гибкий механизм базы данных SQLite
-- Поддержка различных типов складских позиций
-- Управление чертежами и документацией
-- Система совместимости деталей
-
-## Системные требования
-
-- Python 3.9 или выше
-- SQLite3
-- Место на диске: минимум 100MB (для хранения чертежей)
-- ОС: Linux (рекомендуется), Windows, macOS
-
-## Установка
-
-1. Клонируйте репозиторий:
-```bash
 git clone https://github.com/your-username/homut.git
 cd homut
 ```
 
-2. Создайте виртуальное окружение и активируйте его:
-```bash
-python -m venv venv
-source venv/bin/activate  # для Linux/macOS
-venv\Scripts\activate     # для Windows
-```
-
-3. Установите зависимости:
+2. Установите зависимости:
 ```bash
 pip install -r requirements.txt
 ```
@@ -70,105 +39,6 @@ TELEGRAM_TOKEN=your_bot_token_here
 2. Для инициализации таблицы чертежей выполните:
 ```bash
 python init_drawings_table.py
-```
-
-## Запуск
-
-1. Запустите бот:
-```bash
-python homut.py
-```
-
-## Развертывание на сервере
-
-1. Установите все необходимые пакеты:
-```bash
-apt update
-apt install python3 python3-pip sqlite3
-```
-
-2. Клонируйте репозиторий и установите зависимости:
-```bash
-git clone https://github.com/your-username/homut.git
-cd homut
-pip3 install -r requirements.txt
-```
-
-3. Настройте systemd сервис для автоматического запуска.
-Создайте файл `/etc/systemd/system/homut-bot.service`:
-
-```ini
-[Unit]
-Description=Homut Telegram Bot
-After=network.target
-
-[Service]
-Type=simple
-User=your_user
-WorkingDirectory=/path/to/homut
-Environment=PYTHONPATH=/path/to/homut
-ExecStart=/usr/bin/python3 homut.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-4. Активируйте и запустите сервис:
-```bash
-sudo systemctl enable homut-bot
-sudo systemctl start homut-bot
-```
-
-## Мониторинг
-
-Для просмотра логов бота используйте:
-```bash
-# Через systemd
-journalctl -u homut-bot -f
-
-# Напрямую из файла логов
-tail -f homut.log
-```
-
-## Бэкап данных
-
-1. Регулярно делайте резервные копии базы данных:
-```bash
-# Создание бэкапа
-sqlite3 inventory.db ".backup 'inventory.db.backup'"
-
-# Восстановление из бэкапа
-sqlite3 inventory.db ".restore 'inventory.db.backup'"
-```
-
-2. Также сохраняйте папку с чертежами:
-```bash
-tar -czf drawings_backup.tar.gz drawings/
-```
-
-## Обновление
-
-1. Остановите бота:
-```bash
-sudo systemctl stop homut-bot
-```
-
-2. Создайте резервную копию данных.
-
-3. Обновите код:
-```bash
-git pull origin main
-```
-
-4. Установите новые зависимости:
-```bash
-pip install -r requirements.txt
-```
-
-5. Запустите бота:
-```bash
-sudo systemctl start homut-bot
 ```
 
 ## Структура проекта
@@ -224,22 +94,53 @@ sudo systemctl start homut-bot
 И аналогичные таблицы для других категорий (Parts, Knives, Clamps, Disc_Parts, Pushers).
 
 
-## Лицензия
+## Запуск
 
-MIT
+1. Запустите бот:
+```bash
+python homut.py
+```
 
-## Автор
+## Развертывание на сервере
 
-Your Name <your.email@example.com>
+1. Установите все зависимости на сервере
+2. Настройте переменные окружения в файле .env
+3. Запустите бота через systemd или screen/tmux для работы в фоновом режиме
 
-## Вклад в проект
+### Пример systemd сервиса
 
-1. Форкните репозиторий
-2. Создайте ветку для ваших изменений
-3. Внесите изменения
-4. Отправьте pull request
+Создайте файл `/etc/systemd/system/homut-bot.service`:
 
-При разработке придерживайтесь:
-- PEP 8 для Python кода
-- Добавляйте документацию к новым функциям
-- Пишите тесты для новой функциональности
+```ini
+[Unit]
+Description=Homut Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+WorkingDirectory=/path/to/homut
+Environment=PYTHONPATH=/path/to/homut
+ExecStart=/usr/bin/python3 homut.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Затем выполните:
+```bash
+sudo systemctl enable homut-bot
+sudo systemctl start homut-bot
+```
+
+## Мониторинг
+
+Для просмотра логов бота используйте:
+```bash
+tail -f /var/log/syslog | grep homut.py
+```
+
+или через systemd:
+```bash
+journalctl -u homut-bot -f

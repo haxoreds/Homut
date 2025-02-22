@@ -1,14 +1,3 @@
-"""
-Database Module - Модуль работы с базой данных
-============================================
-
-Этот модуль обеспечивает взаимодействие с базой данных SQLite.
-Содержит функции для:
-- Подключения к базе данных
-- Выполнения запросов
-- Управления данными различных категорий инструментов
-"""
-
 import logging
 import sqlite3
 import re
@@ -19,15 +8,7 @@ from menu import menu, create_inventory_submenus, inventory_list, get_menu_keybo
 logger = logging.getLogger(__name__)
 
 def get_connection():
-    """
-    Создает и возвращает синхронное подключение к базе данных SQLite.
-
-    Возвращает:
-    - sqlite3.Connection: Объект подключения к базе данных
-
-    Исключения:
-    - sqlite3.Error: В случае ошибки подключения к базе данных
-    """
+    """Получение соединения с базой данных"""
     try:
         conn = sqlite3.connect('inventory.db')
         # Включаем поддержку внешних ключей
@@ -38,15 +19,7 @@ def get_connection():
         raise
 
 async def get_async_connection():
-    """
-    Создает и возвращает асинхронное подключение к базе данных SQLite.
-
-    Возвращает:
-    - aiosqlite.Connection: Объект асинхронного подключения к базе данных
-
-    Исключения:
-    - aiosqlite.Error: В случае ошибки подключения к базе данных
-    """
+    """Получение асинхронного соединения с базой данных"""
     try:
         conn = await aiosqlite.connect('inventory.db')
         await conn.execute("PRAGMA foreign_keys = ON")
@@ -56,23 +29,11 @@ async def get_async_connection():
         raise
 
 async def get_stamp_id_by_action(action):
-    """
-    Получает ID штампа на основе действия пользователя.
-
-    Параметры:
-    - action (str): Строка действия в формате '{действие}{категория}{id}'
-
-    Возвращает:
-    - int|None: ID штампа или None, если не найден
-
-    Особенности реализации:
-    - Использует регулярные выражения для разбора строки действия
-    - Проверяет соответствие в inventory_list
-    - Выполняет запрос к базе данных для получения ID
-    """
+    """Получение stamp_id на основе действия"""
     try:
         logger.info(f"Получен action для обработки: {action}")
 
+        # Извлекаем категорию и inv_id из action
         pattern = r'^(?:addnewitem|showbalance|updatedb|changequantity|editdelete)([a-z]+)(\d+(?:_\d+)?(?:_[a-z]+(?:_\d+)?)?)'
         match = re.match(pattern, action)
 
@@ -84,7 +45,7 @@ async def get_stamp_id_by_action(action):
         inv_id = match.group(2)
         logger.info(f"Извлечена категория: {category}, inv_id: {inv_id}")
 
-        # Поиск соответствующего штампа
+        # Ищем соответствующий штамп в inventory_list
         inv_name = None
         for inv_id_item, inv_name_item in inventory_list:
             if inv_id_item == inv_id:
@@ -96,8 +57,9 @@ async def get_stamp_id_by_action(action):
             logger.warning(f"Не найдено соответствие в inventory_list для inv_id: {inv_id}")
             return None
 
-        # Получение stamp_id из базы данных
-        async with await aiosqlite.connect('inventory.db') as db:
+        # Получаем stamp_id из базы данных
+        db = await aiosqlite.connect('inventory.db')
+        try:
             await db.execute("PRAGMA foreign_keys = ON")
             async with db.execute("SELECT id FROM Stamps WHERE name = ?", (inv_name,)) as cursor:
                 result = await cursor.fetchone()
@@ -108,21 +70,15 @@ async def get_stamp_id_by_action(action):
                 else:
                     logger.warning(f"Штамп {inv_name} не найден в базе данных")
                     return None
+        finally:
+            await db.close()
 
     except Exception as e:
         logger.error(f"Ошибка при получении stamp_id: {e}", exc_info=True)
         return None
 
 def get_table_name(category):
-    """
-    Преобразует категорию в имя соответствующей таблицы базы данных.
-
-    Параметры:
-    - category (str): Название категории
-
-    Возвращает:
-    - str|None: Имя таблицы или None, если категория не найдена
-    """
+    """Получение имени таблицы по категории"""
     category_to_table = {
         'punches': 'Punches',
         'inserts': 'Inserts',
@@ -137,21 +93,7 @@ def get_table_name(category):
     return category_to_table.get(category)
 
 async def get_items_in_category(category, inv_id):
-    """
-    Получает список позиций в указанной категории для конкретного штампа.
-
-    Параметры:
-    - category (str): Категория инструментов
-    - inv_id (str): Идентификатор инвентаря
-
-    Возвращает:
-    - list: Список словарей с информацией о позициях
-
-    Особенности реализации:
-    - Проверяет существование таблицы для категории
-    - Находит соответствующий stamp_id
-    - Выполняет запрос к базе данных для получения списка позиций
-    """
+    """Получение списка позиций в категории для данного штампа"""
     logger.info(f"Запрос позиций для категории {category} и inv_id {inv_id}")
 
     table_name = get_table_name(category)
@@ -200,9 +142,7 @@ async def get_items_in_category(category, inv_id):
         return []
 
 async def get_item_by_id(category, item_id):
-    """
-    Получение позиции по ID
-    """
+    """Получение позиции по ID"""
     table_name = get_table_name(category)
     if not table_name:
         logger.warning(f"Таблица не найдена для категории {category}")
@@ -228,9 +168,7 @@ async def get_item_by_id(category, item_id):
         return None
 
 async def update_item_field(category, item_id, field, value):
-    """
-    Обновление поля позиции
-    """
+    """Обновление поля позиции"""
     table_name = get_table_name(category)
     if not table_name:
         logger.warning(f"Таблица не найдена для категории {category}")
@@ -248,9 +186,7 @@ async def update_item_field(category, item_id, field, value):
         return False
 
 async def delete_item_from_database(category, item_id):
-    """
-    Удаление позиции из базы данных
-    """
+    """Удаление позиции из базы данных"""
     table_name = get_table_name(category)
     if not table_name:
         logger.warning(f"Таблица не найдена для категории {category}")

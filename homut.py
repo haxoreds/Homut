@@ -1,33 +1,3 @@
-"""
-Homut - Telegram Bot для управления складским учетом
-=================================================
-
-Этот модуль является основным файлом приложения, который содержит:
-1. Инициализацию бота и его обработчиков
-2. Обработку команд и callback-запросов
-3. Управление состояниями диалога
-4. Обработку ошибок
-
-Основные компоненты:
-- Система меню и навигации
-- Управление инвентарем (добавление, редактирование, удаление)
-- Работа с чертежами
-- Управление совместимостью деталей
-- Система логирования
-
-Архитектурные особенности:
-- Использует паттерн ConversationHandler для управления состояниями
-- Асинхронное взаимодействие с базой данных через aiosqlite
-- Модульная структура с разделением функциональности
-- Extensive logging для отладки и мониторинга
-
-Требования к окружению:
-- Python 3.9+
-- python-telegram-bot==21.10
-- aiosqlite==0.21.0
-- SQLite3 база данных
-"""
-
 import logging
 import aiosqlite
 import re
@@ -119,17 +89,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Глобальный обработчик ошибок для бота.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота, содержащий информацию об ошибке
-
-    Действия:
-    1. Логирует ошибку с полным стектрейсом
-    2. Отправляет пользователю сообщение об ошибке
-    """
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
     if update and update.effective_chat:
         await context.bot.send_message(
@@ -138,17 +97,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Обработчик команды /start.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Действия:
-    1. Инициализирует путь меню для пользователя
-    2. Отправляет приветственное сообщение с главным меню
-    """
     logger.info(f"Получена команда /start от пользователя {update.effective_user.id}")
     try:
         context.user_data['menu_path'] = ['main_menu']
@@ -160,71 +108,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.error(f"Ошибка при обработке команды /start: {e}")
         await update.message.reply_text("Произошла ошибка при запуске бота. Пожалуйста, попробуйте позже.")
 
-async def show_drawings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> States.DRAWINGS_MENU:
-    """
-    Отображает меню управления чертежами.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - States.DRAWINGS_MENU: Состояние меню чертежей
-
-    Действия:
-    1. Создает клавиатуру с опциями управления чертежами
-    2. Отображает меню с возможностями загрузки, просмотра и поиска чертежей
-    """
-    try:
-        query = update.callback_query
-        if query is None:
-            return States.DRAWINGS_MENU
-
-        await query.answer()
-        keyboard = [
-            [InlineKeyboardButton("📤 Загрузить чертеж", callback_data="upload_drawing")],
-            [InlineKeyboardButton("📋 Просмотр чертежей", callback_data="view_drawings")],
-            [InlineKeyboardButton("🔍 Поиск чертежей", callback_data="search_drawings")],
-            [InlineKeyboardButton("↩️ Назад в главное меню", callback_data="back")]
-        ]
-        await query.message.edit_text(
-            "📐 Меню управления чертежами\n\n"
-            "Выберите действие:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return States.DRAWINGS_MENU
-    except Exception as e:
-        logger.error(f"Ошибка при показе меню чертежей: {e}")
-        if query is not None:
-            await query.message.reply_text(
-                "Произошла ошибка при загрузке меню чертежей. Попробуйте позже."
-            )
-        return States.DRAWINGS_MENU
-
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Главный обработчик callback-запросов от кнопок инлайн-клавиатуры.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Действия:
-    1. Обрабатывает нажатия на кнопки меню
-    2. Управляет навигацией по меню
-    3. Вызывает соответствующие обработчики для различных действий
-
-    Особенности реализации:
-    - Поддерживает иерархическую структуру меню
-    - Обрабатывает специальные действия (чертежи, совместимость)
-    - Имеет систему обработки ошибок с информативными сообщениями
-    """
     try:
         query = update.callback_query
-        if query is None:
-            logger.error("Получен update без callback_query")
-            return
-
         await query.answer()
 
         # Инициализируем путь меню, если его нет
@@ -238,13 +124,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.info(f"Получен callback с данными: {data} от пользователя {update.effective_user.id}")
         logger.info(f"Текущий путь в меню: {user_path}")
 
-        # Обработка различных типов callback-данных
+        # Обработка действий связанных с чертежами
         if data == 'drawings':
             return await show_drawings_menu(update, context)
         elif data in ['upload_drawing', 'view_drawings', 'search_drawings', 'back_to_drawings']:
+            # Эти действия будут обрабатываться в drawings_handler
             return
 
-        # Обработка действий совместимости
+        # Проверяем специальные callback'и для навигации по совместимости
         if data in ["compatibility_parts", "back_to_compatibility", "back_to_stamp_list"]:
             if data == "compatibility_parts":
                 await show_compatibility_menu(update, context)
@@ -258,8 +145,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if data == 'back':
             logger.info("Обработка кнопки 'Назад в главное меню'")
             try:
+                # Очищаем все данные пользователя
                 context.user_data.clear()
                 context.user_data['menu_path'] = ['main_menu']
+
+                # Возвращаемся в главное меню
                 keyboard = get_menu_keyboard('main_menu')
                 try:
                     await query.message.edit_text(
@@ -353,22 +243,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     except Exception as e:
         logger.error(f"Ошибка при обработке callback кнопки: {e}", exc_info=True)
+        keyboard = get_menu_keyboard('main_menu')
         try:
-            if query is not None:
-                keyboard = get_menu_keyboard('main_menu')
-                try:
-                    await query.message.edit_text(
-                        "Произошла ошибка при обработке действия. Пожалуйста, попробуйте позже.",
-                        reply_markup=keyboard
-                    )
-                except Exception as edit_error:
-                    logger.error(f"Ошибка при отправке сообщения об ошибке: {edit_error}", exc_info=True)
-                    await query.message.reply_text(
-                        "Произошла ошибка при обработке действия. Пожалуйста, попробуйте позже.",
-                        reply_markup=keyboard
-                    )
-        except Exception as message_error:
-            logger.error(f"Ошибка при отправке сообщения об ошибке: {message_error}", exc_info=True)
+            await query.message.edit_text(
+                "Произошла ошибка при обработке действия. Пожалуйста, попробуйте позже.",
+                reply_markup=keyboard
+            )
+        except Exception as edit_error:
+            logger.error(f"Ошибка при отправке сообщения об ошибке: {edit_error}", exc_info=True)
+            await query.message.reply_text(
+                "Произошла ошибка при обработке действия. Пожалуйста, попробуйте позже.",
+                reply_markup=keyboard
+            )
         return ConversationHandler.END
 
 # Обновляем ConversationHandler для совместимости

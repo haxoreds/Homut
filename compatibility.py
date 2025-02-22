@@ -1,20 +1,3 @@
-"""
-Compatibility Module - Модуль управления совместимостью деталей
-=========================================================
-
-Этот модуль обеспечивает функциональность для:
-- Проверки совместимости деталей между различными штампами
-- Добавления новых записей о совместимости
-- Редактирования существующих записей
-- Удаления информации о совместимости
-
-Основные возможности:
-1. Проверка совместимости деталей между штампами
-2. Добавление новых совместимых деталей
-3. Редактирование существующих записей
-4. Управление заметками о совместимости
-"""
-
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
@@ -25,21 +8,7 @@ from constants import States
 logger = logging.getLogger(__name__)
 
 async def show_compatibility_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Показывает главное меню управления совместимостью деталей.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - States.COMPATIBILITY_MENU: Состояние меню совместимости
-
-    Действия:
-    1. Очищает временные данные пользователя
-    2. Создает клавиатуру с опциями управления
-    3. Отображает меню с возможными действиями
-    """
+    """Показывает главное меню совместимости деталей"""
     query = update.callback_query
     await query.answer()
 

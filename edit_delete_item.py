@@ -1,27 +1,3 @@
-"""
-Edit/Delete Module - Модуль редактирования и удаления элементов
-==================================================
-
-Этот модуль обеспечивает функциональность для редактирования и удаления элементов в инвентаре.
-Основные возможности:
-- Выбор элемента для редактирования или удаления
-- Редактирование различных полей элементов (название, количество, тип и т.д.)
-- Безопасное удаление элементов с подтверждением
-- Обработка отмены операций
-
-Процесс работы:
-1. Выбор действия (редактирование/удаление)
-2. Выбор конкретного элемента
-3. Для редактирования - выбор поля и ввод нового значения
-4. Для удаления - подтверждение операции
-5. Сохранение изменений в базе данных
-
-Особенности реализации:
-- Использует States для управления процессом
-- Обеспечивает безопасное обновление базы данных
-- Поддерживает отмену операций на любом этапе
-"""
-
 import re
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -38,22 +14,7 @@ async def show_edit_delete_menu_old(update: Update, context: ContextTypes.DEFAUL
     return ConversationHandler.END
 
 async def show_edit_delete_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Показывает меню выбора между редактированием и удалением элемента.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога (States.EDIT_DELETE_SELECT_ACTION или ConversationHandler.END)
-
-    Действия:
-    1. Обрабатывает callback запрос
-    2. Проверяет валидность действия
-    3. Создает клавиатуру с опциями редактирования/удаления
-    4. Отображает меню выбора действия
-    """
+    """Показывает меню выбора между редактированием и удалением"""
     query = update.callback_query
     if query:
         await query.answer()
@@ -102,22 +63,7 @@ async def show_edit_delete_menu(update: Update, context: ContextTypes.DEFAULT_TY
     return States.EDIT_DELETE_SELECT_ACTION
 
 async def handle_action_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает выбор действия (редактирование или удаление).
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога (States.EDIT_DELETE_CHOOSING или ConversationHandler.END)
-
-    Процесс:
-    1. Получает выбранное действие из callback
-    2. Определяет категорию и ID штампа
-    3. Получает список элементов из соответствующей таблицы
-    4. Создает клавиатуру для выбора конкретного элемента
-    """
+    """Обрабатывает выбор действия (редактирование или удаление)"""
     query = update.callback_query
     await query.answer()
 
@@ -249,22 +195,6 @@ async def handle_action_selection(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
 
 async def handle_delete_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает подтверждение удаления элемента.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога
-
-    Процесс:
-    1. Проверяет наличие необходимых данных
-    2. Выполняет удаление из базы данных
-    3. Отправляет подтверждение пользователю
-    4. Обрабатывает возможные ошибки
-    """
     query = update.callback_query
     await query.answer()
 
@@ -306,22 +236,6 @@ async def handle_delete_confirm(update: Update, context: ContextTypes.DEFAULT_TY
         return States.EDIT_DELETE_CHOOSING
 
 async def handle_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает ввод нового значения при редактировании.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога
-
-    Особенности:
-    - Проверяет валидность введенного значения
-    - Для количества проверяет, что значение положительное
-    - Сохраняет изменения в базе данных
-    - Отправляет подтверждение об успешном обновлении
-    """
     if not update.message:
         return States.EDIT_ENTERING_VALUE
 
@@ -387,22 +301,6 @@ async def handle_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return States.EDIT_DELETE_CHOOSING
 
 async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает выбор элемента для редактирования.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога (States.EDIT_CHOOSING_FIELD или States.DELETE_CONFIRM)
-
-    Процесс:
-    1. Получает ID выбранного элемента
-    2. Определяет тип действия (редактирование/удаление)
-    3. Получает данные элемента из базы
-    4. Создает соответствующую клавиатуру для следующего шага
-    """
     query = update.callback_query
     await query.answer()
 
@@ -490,21 +388,6 @@ async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return States.EDIT_DELETE_CHOOSING
 
 async def handle_edit_field(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает выбор поля для редактирования.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога (States.EDIT_ENTERING_VALUE)
-
-    Особенности:
-    - Сохраняет выбранное поле в контексте
-    - Отображает подсказку в зависимости от типа поля
-    - Поддерживает различные типы полей (название, количество, тип, размер, описание)
-    """
     query = update.callback_query
     await query.answer()
 
@@ -534,21 +417,7 @@ async def handle_edit_field(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return States.EDIT_ENTERING_VALUE
 
 async def handle_exit_options(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Обрабатывает варианты выхода при несохраненных изменениях.
-
-    Параметры:
-    - update (Update): Объект обновления от Telegram
-    - context (ContextTypes.DEFAULT_TYPE): Контекст бота
-
-    Возвращает:
-    - int: Новое состояние диалога (ConversationHandler.END)
-
-    Действия:
-    1. При выборе сохранения - сохраняет изменения в базе
-    2. При выборе выхода без сохранения - отменяет изменения
-    3. В обоих случаях возвращает пользователя в предыдущее меню
-    """
+    """Обработка выбора при выходе с несохраненными изменениями"""
     query = update.callback_query
     await query.answer()
 

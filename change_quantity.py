@@ -1,21 +1,3 @@
-"""
-Quantity Management Module - Модуль управления количеством
-===============================================
-
-Этот модуль обеспечивает функциональность для изменения количества элементов в инвентаре.
-Основные возможности:
-- Выбор элемента для изменения количества
-- Пошаговое изменение количества (+1, -1, +10, -10)
-- Сохранение изменений в базе данных
-- Подтверждение/отмена изменений
-
-Особенности реализации:
-- Использует состояния для управления процессом изменения
-- Поддерживает различные категории элементов (пуансоны, вставки и т.д.)
-- Обеспечивает безопасное обновление данных в базе
-- Предотвращает сохранение отрицательных значений
-"""
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, error as telegram_error
 from telegram.ext import (
     ContextTypes,
@@ -33,13 +15,6 @@ from constants import States
 logger = logging.getLogger(__name__)
 
 def get_adjust_quantity_keyboard():
-    """
-    Создает клавиатуру для изменения количества.
-
-    Возвращает:
-    - InlineKeyboardMarkup: Клавиатура с кнопками для изменения количества
-      (+1, -1, +10, -10, Готово, Назад)
-    """
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("+1", callback_data='adjust_quantity:+1'),
@@ -56,18 +31,6 @@ def get_adjust_quantity_keyboard():
     ])
 
 async def get_items_in_category(db, item_type, stamp_id):
-    """
-    Получает список элементов определенной категории для конкретного штампа.
-
-    Параметры:
-    - db: Объект подключения к базе данных
-    - item_type (str): Тип элемента (punches, inserts, etc.)
-    - stamp_id (int): ID штампа
-
-    Возвращает:
-    - list: Список словарей с информацией об элементах
-           Каждый словарь содержит 'name' и 'id'
-    """
     # Определяем таблицу на основе item_type
     table_mapping = {
         'punches': 'Punches',

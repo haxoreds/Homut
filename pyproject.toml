@@ -1,13 +1,19 @@
 [project]
-name = "homut-bot"
+name = "repl-nix-workspace"
 version = "0.1.0"
-description = "Telegram bot for warehouse inventory management"
+description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.21.0",
+    "flask-login>=0.6.3",
+    "flask-wtf>=1.2.2",
+    "nest-asyncio>=1.6.0",
+    "oauthlib>=3.2.2",
     "python-dotenv>=1.0.1",
     "python-telegram-bot>=20.0",
     "telegram>=0.0.1",
+    "trafilatura>=2.0.0",
+    "twilio>=9.4.6",
     "update>=0.0.1",
     "validators>=0.34.0",
 ]
